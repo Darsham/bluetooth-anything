@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "device": {
+    "name": "EXAMPLE-100",
+    "vendor": "Example Corp",
+    "category": "light"
+  },
+  "match": {
+    "namePattern": "^EXAMPLE-(100|200)$",
+    "serviceUuids": [
+      "0000fff0-0000-1000-8000-00805f9b34fb"
+    ]
+  },
+  "gatt": [
+    {
+      "uuid": "0000fff0-0000-1000-8000-00805f9b34fb",
+      "name": "vendor",
+      "characteristics": [
+        {
+          "uuid": "0000fff1-0000-1000-8000-00805f9b34fb",
+          "properties": ["read", "notify"],
+          "role": "state"
+        },
+        {
+          "uuid": "0000fff2-0000-1000-8000-00805f9b34fb",
+          "properties": ["write"],
+          "role": "control"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "name": "power_on",
+      "label": "Power on",
+      "target": "0000fff2-0000-1000-8000-00805f9b34fb",
+      "frame": "03 12 01",
+      "padTo": 20,
+      "params": [],
+      "evidence": "C"
+    },
+    {
+      "name": "brightness",
+      "label": "Brightness",
+      "target": "0000fff2-0000-1000-8000-00805f9b34fb",
+      "frame": "03 13 {level}",
+      "padTo": 20,
+      "params": [
+        { "name": "level", "type": "uint8", "min": 0, "max": 100 }
+      ],
+      "evidence": "C"
+    }
+  ],
+  "provenance": {
+    "app": "com.example.xyz",
+    "appVersion": "1.2.3",
+    "firmware": "1.0.4",
+    "method": "hci-snoop",
+    "captures": ["cap_on.log", "cap_brightness.log"],
+    "confirmedBy": "C",
+    "date": "2026-10-28"
+  }
+}

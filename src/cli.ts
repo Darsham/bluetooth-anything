@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { createAdapter } from './ble/adapter.js';
+import { fingerprintCommand } from './fingerprint.js';
 import type { Advertisement, GattTree } from './ble/types.js';
 
 const program = new Command();
@@ -160,5 +161,9 @@ program
     console.error('See docs/ARCHITECTURE.md, layer 3.');
     process.exit(2);
   });
+
+/* ----------------------------------------------------------- fingerprint */
+
+program.addCommand(fingerprintCommand());
 
 program.parseAsync(process.argv).catch(fail);
