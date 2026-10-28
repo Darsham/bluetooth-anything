@@ -142,29 +142,41 @@ export class NobleAdapter implements Adapter {
 
   private async findPeripheral(noble: AnyNoble, address: string): Promise<AnyNoble> {
     const normalized = address.toLowerCase();
-    const cached = (noble._peripherals ?? {}) as Record<string, AnyNoble>;
-    for (const p of Object.values(cached)) {
-      if (String(p.address).toLowerCase() === normalized) return p;
-    }
 
-    // Not in cache: scan briefly and look again.
-    const deadline = Date.now() + 10_000;
-    await noble.startScanningAsync([], true);
-    try {
-      while (Date.now() < deadline) {
-        const now = (noble._peripherals ?? {}) as Record<string, AnyNoble>;
-        for (const p of Object.values(now)) {
-          if (String(p.address).toLowerCase() === normalized) return p;
-        }
-        await new Promise((r) => setTimeout(r, 300));
-      }
-    } finally {
-      try {
-        await noble.stopScanningAsync();
-      } catch {
-        /* ignore */
-      }
-    }
-    throw new Error(`Device not found: ${address}`);
+    // noble's internal cache is not a stable API — catch the peripheral from the
+    // discover event instead, which is what startScanning actually emits.
+    return await new Promise<AnyNoble>((resolve, reject) => {
+      let settled = false;
+
+      const cleanup = (): void => {
+        noble.removeListener('discover', onDiscover);
+        noble.stopScanningAsync().catch(() => undefined);
+      };
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(`Device not found: ${address} (scanned 15s)`));
+      }, 15_000);
+
+      const onDiscover = (peripheral: AnyNoble): void => {
+        if (settled) return;
+        if (String(peripheral.address).toLowerCase() !== normalized) return;
+        settled = true;
+        clearTimeout(timer);
+        cleanup();
+        resolve(peripheral);
+      };
+
+      noble.on('discover', onDiscover);
+      noble.startScanningAsync([], true).catch((err: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        cleanup();
+        reject(err);
+      });
+    });
   }
 }
